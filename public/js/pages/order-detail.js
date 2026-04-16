@@ -20,29 +20,34 @@ createApp({
 
     const paymentMessages = {
       success: { text: '付款成功！感謝您的購買。', cls: 'bg-sage/10 text-sage border border-sage/20' },
-      failed: { text: '付款失敗，請重試。', cls: 'bg-red-50 text-red-600 border border-red-100' },
+      failed: { text: '付款失敗，請重試或選擇其他付款方式。', cls: 'bg-red-50 text-red-600 border border-red-100' },
       cancel: { text: '付款已取消。', cls: 'bg-apricot/10 text-apricot border border-apricot/20' },
     };
 
-    async function simulatePay(action) {
+    async function goToEcpay() {
       if (!order.value || paying.value) return;
       paying.value = true;
       try {
-        const res = await apiFetch('/api/orders/' + order.value.id + '/pay', {
-          method: 'PATCH',
-          body: JSON.stringify({ action })
+        const res = await apiFetch('/api/payment/create/' + order.value.id, { method: 'POST' });
+        const { action_url, fields } = res.data;
+        // 動態建立隱藏 form 並自動提交到綠界付款頁
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = action_url;
+        Object.entries(fields).forEach(function([k, v]) {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = k;
+          input.value = v;
+          form.appendChild(input);
         });
-        order.value = res.data;
-        paymentResult.value = action === 'success' ? 'success' : 'failed';
+        document.body.appendChild(form);
+        form.submit();
       } catch (e) {
-        Notification.show('付款處理失敗', 'error');
-      } finally {
+        Notification.show('建立付款失敗，請重試', 'error');
         paying.value = false;
       }
     }
-
-    function handlePaySuccess() { simulatePay('success'); }
-    function handlePayFail() { simulatePay('fail'); }
 
     onMounted(async function () {
       try {
@@ -55,6 +60,6 @@ createApp({
       }
     });
 
-    return { order, loading, paying, paymentResult, statusMap, paymentMessages, handlePaySuccess, handlePayFail };
+    return { order, loading, paying, paymentResult, statusMap, paymentMessages, goToEcpay };
   }
 }).mount('#app');

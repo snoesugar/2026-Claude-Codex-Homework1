@@ -34,6 +34,9 @@ app.use('/api/products', require('./src/routes/productRoutes'));
 app.use('/api/cart', require('./src/routes/cartRoutes'));
 app.use('/api/orders', require('./src/routes/orderRoutes'));
 
+// Payment Routes (ECPay AIO)
+app.use('/', require('./src/routes/paymentRoutes'));
+
 // Page Routes
 app.use('/', require('./src/routes/pageRoutes'));
 

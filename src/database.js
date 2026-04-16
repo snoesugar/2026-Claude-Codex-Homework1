@@ -52,7 +52,7 @@ function initializeDatabase() {
       recipient_address TEXT NOT NULL,
       total_amount INTEGER NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'paid', 'failed')),
-
+      merchant_trade_no TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
@@ -164,5 +164,13 @@ function seedProducts() {
 }
 
 initializeDatabase();
+
+// Migration: 為既有資料庫補上 merchant_trade_no 欄位
+(function runMigrations() {
+  const cols = db.pragma('table_info(orders)');
+  if (!cols.find(c => c.name === 'merchant_trade_no')) {
+    db.exec('ALTER TABLE orders ADD COLUMN merchant_trade_no TEXT');
+  }
+})();
 
 module.exports = db;
