@@ -54,10 +54,10 @@
 | `FRONTEND_URL` | CORS 允許的前端來源 | 選填 | `http://localhost:5173` |
 | `ADMIN_EMAIL` | 初始管理員帳號 email | 選填 | `admin@hexschool.com` |
 | `ADMIN_PASSWORD` | 初始管理員帳號密碼 | 選填 | `12345678` |
-| `ECPAY_MERCHANT_ID` | 綠界商店代號（預留） | 選填 | `3002607`（staging） |
-| `ECPAY_HASH_KEY` | 綠界 HashKey（預留） | 選填 | staging 測試值 |
-| `ECPAY_HASH_IV` | 綠界 HashIV（預留） | 選填 | staging 測試值 |
-| `ECPAY_ENV` | 綠界環境（預留） | 選填 | `staging` |
+| `ECPAY_MERCHANT_ID` | 綠界商店代號 | 選填 | `3002607`（staging 測試帳號） |
+| `ECPAY_HASH_KEY` | 綠界 HashKey（CheckMacValue 簽章用） | 選填 | `pwFHCqoQZGmho4w6`（staging） |
+| `ECPAY_HASH_IV` | 綠界 HashIV（CheckMacValue 簽章用） | 選填 | `EkRm7iFT261dpevs`（staging） |
+| `ECPAY_ENV` | 綠界環境（`staging` \| `production`） | 選填 | `staging` |
 | `NODE_ENV` | 執行環境（`test` 時 bcrypt saltRounds=1） | 選填 | — |
 
 > **安全提醒**：生產環境的 `JWT_SECRET` 應使用至少 32 字元的隨機字串，永遠不可提交至 git。
@@ -88,7 +88,17 @@
 
 1. 在 `src/database.js` 的 `initializeDatabase()` 函式中，`db.exec()` 內加入 `CREATE TABLE IF NOT EXISTS ...`
 2. 若需要 seed 資料，在 `initializeDatabase()` 末端呼叫新的 seed 函式
-3. 已存在的 SQLite 檔不會自動 migrate（`IF NOT EXISTS` 只新增不修改），若需修改 schema 需手動刪除 `src/database.sqlite` 重新啟動
+3. 已存在的 SQLite 檔不會自動 migrate（`IF NOT EXISTS` 只新增不修改）
+4. **若需對既有資料表新增欄位**，在 `src/database.js` 底部實作 migration 函式：
+   ```javascript
+   (function runMigrations() {
+     const cols = db.pragma('table_info(your_table)');
+     if (!cols.find(c => c.name === 'new_column')) {
+       db.exec('ALTER TABLE your_table ADD COLUMN new_column TEXT');
+     }
+   })();
+   ```
+   此函式會在伺服器啟動時自動執行，對新舊資料庫均安全（新建 DB 會因 `CREATE TABLE` 已含欄位而跳過）。若需大幅重構 schema，仍建議手動刪除 `src/database.sqlite` 重新啟動。
 
 ---
 

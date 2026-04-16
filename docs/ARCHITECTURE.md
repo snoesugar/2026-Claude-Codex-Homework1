@@ -14,7 +14,8 @@
 ├── .env / .env.example           # 環境變數
 │
 ├── src/
-│   ├── database.js               # DB 初始化、建表、seed 資料，匯出 db 實例
+│   ├── database.js               # DB 初始化、建表、seed 資料、migration，匯出 db 實例
+│   ├── ecpay.js                  # 綠界 ECPay 工具（CheckMacValue、QueryTradeInfo）
 │   ├── middleware/
 │   │   ├── authMiddleware.js     # 驗證 JWT Bearer Token，掛 req.user
 │   │   ├── adminMiddleware.js    # 確認 req.user.role === 'admin'
@@ -27,6 +28,7 @@
 │       ├── orderRoutes.js        # 訂單建立、查詢、付款（需登入）
 │       ├── adminProductRoutes.js # 後台商品 CRUD（需 admin）
 │       ├── adminOrderRoutes.js   # 後台訂單查詢（需 admin）
+│       ├── paymentRoutes.js      # ECPay AIO 金流（建立付款、接收結果、notify）
 │       └── pageRoutes.js         # SSR 頁面路由（EJS + layout 渲染）
 │
 ├── public/
@@ -45,7 +47,7 @@
 │   │       ├── checkout.js       # 結帳頁
 │   │       ├── login.js          # 登入頁
 │   │       ├── orders.js         # 我的訂單列表
-│   │       ├── order-detail.js   # 訂單詳情＋付款模擬
+│   │       ├── order-detail.js   # 訂單詳情＋ECPay 付款跳轉
 │   │       ├── admin-products.js # 後台商品管理
 │   │       └── admin-orders.js   # 後台訂單管理
 │   └── stylesheets/
@@ -99,15 +101,17 @@ node server.js
   └─ require('./app')
        │
        ├─ require('dotenv').config()
-       ├─ require('./src/database')   ← initializeDatabase()
+       ├─ require('./src/database')   ← initializeDatabase() + migration
        │    ├─ 開啟 database.sqlite（WAL 模式，外鍵啟用）
        │    ├─ CREATE TABLE IF NOT EXISTS（5 張表）
        │    ├─ seedAdminUser()        ← 若 admin 不存在則插入
-       │    └─ seedProducts()         ← 若 products 為空則插入 8 筆
+       │    ├─ seedProducts()         ← 若 products 為空則插入 8 筆
+       │    └─ runMigrations()        ← 為既有 DB 補上新欄位（如 merchant_trade_no）
        │
        ├─ 全域 middleware（cors → json → urlencoded → sessionMiddleware）
        ├─ API 路由掛載（/api/auth, /api/products, /api/cart, /api/orders,
        │               /api/admin/products, /api/admin/orders）
+       ├─ 金流路由掛載（/api/payment/*, /payment/*）
        ├─ 頁面路由掛載（/）
        ├─ 404 handler（API 路徑回 JSON，其餘渲染 404.ejs）
        └─ errorHandler（全域錯誤捕捉）
@@ -135,7 +139,11 @@ app.listen(PORT || 3001)
 | POST | /api/orders | JWT | 從購物車建立訂單 |
 | GET | /api/orders | JWT | 查詢自己的訂單列表 |
 | GET | /api/orders/:id | JWT | 查詢單一訂單詳情 |
-| PATCH | /api/orders/:id/pay | JWT | 模擬付款（success/fail） |
+| PATCH | /api/orders/:id/pay | JWT | 模擬付款（success/fail，測試用） |
+| POST | /api/payment/create/:orderId | JWT | 建立 ECPay AIO 付款參數 |
+| POST | /payment/result | 無（綠界導回） | 接收付款結果並主動查詢驗證 |
+| POST | /payment/notify | 無（綠界呼叫） | ReturnURL 端點（回應 1\|OK） |
+| GET | /payment/cancel | 無 | 使用者取消付款導回 |
 
 ### 後台 API（需 JWT + role=admin）
 
@@ -287,9 +295,12 @@ app.listen(PORT || 3001)
 | recipient_address | TEXT | NOT NULL | 收件人地址 |
 | total_amount | INTEGER | NOT NULL | 訂單總金額（新台幣整數） |
 | status | TEXT | NOT NULL, DEFAULT 'pending', CHECK IN ('pending', 'paid', 'failed') | 訂單狀態 |
+| merchant_trade_no | TEXT | — | 綠界交易編號（格式：`FL` + Unix 秒數，每次付款嘗試更新） |
 | created_at | TEXT | NOT NULL, DEFAULT datetime('now') | 建立時間 |
 
 **訂單號格式**：`ORD-YYYYMMDD-XXXXX`，其中 XXXXX 為 UUID v4 前 5 碼大寫。例：`ORD-20260416-A3F8B`。
+
+> `merchant_trade_no` 為 2026-04-16 版本新增欄位，透過 `runMigrations()` 以 `ALTER TABLE ADD COLUMN` 為既有資料庫補欄位，無需手動刪除資料庫重建。
 
 ### order_items
 
