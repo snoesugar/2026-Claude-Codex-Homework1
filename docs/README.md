@@ -101,7 +101,7 @@ npm start
 |------|------|
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | 目錄結構、啟動流程、API 路由總覽、DB Schema |
 | [DEVELOPMENT.md](./DEVELOPMENT.md) | 命名規則、新增模組步驟、環境變數表 |
-| [FEATURES.md](./FEATURES.md) | 功能行為描述、請求/回應格式、錯誤碼 |
+| [features/](./features/) | 功能行為描述、請求/回應格式、錯誤碼（依模組拆分） |
 | [TESTING.md](./TESTING.md) | 測試規範、輔助函式、撰寫新測試步驟 |
 | [CHANGELOG.md](./CHANGELOG.md) | 更新日誌 |
 | [plans/](./plans/) | 開發計畫（進行中） |

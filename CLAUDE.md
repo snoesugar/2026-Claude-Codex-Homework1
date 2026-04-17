@@ -51,6 +51,6 @@ npm run css:build
 - [./docs/README.md](./docs/README.md) — 項目介紹、技術棧、快速開始
 - [./docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — 架構、目錄結構、資料流、API 路由總覽、資料庫 Schema
 - [./docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md) — 開發規範、命名規則、新增模組步驟、環境變數
-- [./docs/FEATURES.md](./docs/FEATURES.md) — 功能列表、行為描述、錯誤碼
+- [./docs/features/](./docs/features/) — 功能列表、行為描述、錯誤碼（依模組拆分）
 - [./docs/TESTING.md](./docs/TESTING.md) — 測試規範、執行順序、輔助函式
 - [./docs/CHANGELOG.md](./docs/CHANGELOG.md) — 更新日誌

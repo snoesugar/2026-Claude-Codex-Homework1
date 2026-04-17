@@ -186,5 +186,5 @@ docs/plans/YYYY-MM-DD-<feature-name>.md
 ### 3. 功能完成後
 
 1. 將計畫檔移至 `docs/plans/archive/`
-2. 更新 `docs/FEATURES.md` 的功能狀態為 ✅
+2. 更新 `docs/features/README.md` 的功能狀態為 ✅（對應子檔案亦一併更新）
 3. 在 `docs/CHANGELOG.md` 新增版本記錄
